@@ -86,7 +86,7 @@ class DLAnomalyDetector:
 
     def load_model(self):
         if os.path.exists(self.model_path):
-            self.model.load_state_dict(torch.load(self.model_path, map_location=self.device))
+            self.model.load_state_dict(torch.load(self.model_path, map_location=self.device, weights_only=True))
             self.model.eval()
             self._is_trained = True
             print(f"[DL Anomaly] Loaded Autoencoder from {self.model_path}")
@@ -179,7 +179,7 @@ class DLAnomalyDetector:
                 batch = batch.to(self.device)
                 
                 if use_amp:
-                    with torch.cuda.amp.autocast():
+                    with torch.amp.autocast('cuda'):
                         reconstructed = self.model(batch)
                         batch_scores = self.model.compute_anomaly_score(batch, reconstructed)
                 else:

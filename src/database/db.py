@@ -140,3 +140,21 @@ def get_history(limit: int = 50, offset: int = 0):
         
     conn.close()
     return history
+
+def delete_history_record(record_id: int):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute('DELETE FROM anomalies WHERE detection_id = ?', (record_id,))
+    c.execute('DELETE FROM inventory WHERE detection_id = ?', (record_id,))
+    c.execute('DELETE FROM detections WHERE id = ?', (record_id,))
+    conn.commit()
+    conn.close()
+
+def clear_all_history():
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute('DELETE FROM anomalies')
+    c.execute('DELETE FROM inventory')
+    c.execute('DELETE FROM detections')
+    conn.commit()
+    conn.close()

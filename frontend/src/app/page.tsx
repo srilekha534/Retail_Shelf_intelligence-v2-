@@ -35,6 +35,7 @@ export default function Home() {
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const [maximizedImage, setMaximizedImage] = useState<string | null>(null);
   
   const [isCameraActive, setIsCameraActive] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -45,9 +46,30 @@ export default function Home() {
 
   const [hardwareDevice, setHardwareDevice] = useState<string | null>(null);
 
+  // Rehydrate results from session storage when returning to the dashboard
+  useEffect(() => {
+    const saved = sessionStorage.getItem("dashboard_results");
+    if (saved) {
+      try {
+        setResults(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to parse saved dashboard results", e);
+      }
+    }
+  }, []);
+
+  // Save results to session storage whenever they change
+  useEffect(() => {
+    if (results.length > 0) {
+      sessionStorage.setItem("dashboard_results", JSON.stringify(results));
+    } else {
+      sessionStorage.removeItem("dashboard_results");
+    }
+  }, [results]);
+
   // Fetch API health and current device
   useEffect(() => {
-    fetch("/api/health")
+    fetch("http://localhost:8000/health")
       .then(res => res.json())
       .then(data => {
         if (data && data.device) {
@@ -148,7 +170,7 @@ export default function Home() {
       formData.append("detect_anomalies", "true");
 
       try {
-        const response = await fetch("/api/detect", {
+        const response = await fetch("http://localhost:8000/detect", {
           method: "POST",
           body: formData,
         });
@@ -261,6 +283,13 @@ export default function Home() {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
             Live Camera
           </button>
+          
+          {results.length > 0 && !isProcessing && (
+            <button className={styles.toggleBtn} onClick={() => setResults([])} style={{ borderColor: "var(--danger)", color: "var(--danger)" }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              Clear All
+            </button>
+          )}
           
           <input type="file" ref={fileInputRef} onChange={handleSingleUpload} accept="image/*" style={{ display: "none" }} />
           <input type="file" ref={batchInputRef} onChange={handleBatchUpload} accept="image/*" multiple style={{ display: "none" }} />
@@ -401,19 +430,28 @@ export default function Home() {
                 <div key={idx} style={{ marginBottom: "1.5rem" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem", color: "var(--text-primary)" }}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                    <h2 style={{ fontSize: "1.125rem", fontWeight: 600 }}>{result.filename}</h2>
+                    <h2 style={{ fontSize: "1.125rem", fontWeight: 600, flex: 1 }}>{result.filename}</h2>
+                    <button 
+                      onClick={() => setResults(results.filter((_, i) => i !== idx))}
+                      style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", padding: "0.25rem", display: "flex", alignItems: "center", borderRadius: "50%", transition: "background 0.2s" }}
+                      title="Remove from history"
+                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = "rgba(239, 68, 68, 0.1)"}
+                      onMouseOut={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
                   </div>
                   
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
                     <div className={styles.imageViewer}>
                       <div className={styles.imageHeader}><div className={styles.imageTitle}>Original Input</div></div>
-                      <div className={styles.imageContainer} style={{ maxHeight: "350px" }}>
+                      <div className={styles.imageContainer} style={{ maxHeight: "350px", cursor: "pointer" }} onClick={() => result.originalImage && setMaximizedImage(result.originalImage)}>
                         {result.originalImage && <img src={result.originalImage} alt="Original Input" style={{ objectFit: "contain" }} />}
                       </div>
                     </div>
                     <div className={styles.imageViewer}>
                       <div className={styles.imageHeader}><div className={styles.imageTitle}>AI Analysis Output (Detections)</div></div>
-                      <div className={styles.imageContainer} style={{ maxHeight: "350px" }}>
+                      <div className={styles.imageContainer} style={{ maxHeight: "350px", cursor: "pointer" }} onClick={() => result.processedImage && setMaximizedImage(result.processedImage)}>
                         {result.processedImage && <img src={result.processedImage} alt="Processed Output" style={{ objectFit: "contain" }} />}
                       </div>
                     </div>
@@ -424,12 +462,6 @@ export default function Home() {
 
             <div className={styles.rightColumn}>
               <AnomaliesSummary anomalies={aggAnomalies} />
-              <ProductChart counts={results.reduce((acc, r) => {
-                Object.entries(r.metrics.countsByName).forEach(([name, count]) => {
-                  acc[name] = (acc[name] || 0) + count;
-                });
-                return acc;
-              }, {} as Record<string, number>)} />
             </div>
           </div>
 
@@ -445,10 +477,41 @@ export default function Home() {
                 icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{marginRight: "0.5rem", color: "var(--danger)"}}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>} 
                 anomalies={aggAnomalies.filter(a => a.title.includes("Planogram"))} 
              />
-             {results[0] && <AnomaliesVisualization imageSrc={results[0].anomalyImage} />}
-             {results.length > 0 && <OCRResultsTable ocrResults={results.flatMap(r => r.ocrResults)} />}
+             {results[0] && (
+               <div onClick={() => results[0].anomalyImage && setMaximizedImage(results[0].anomalyImage)} style={{ cursor: "pointer" }}>
+                 <AnomaliesVisualization imageSrc={results[0].anomalyImage} />
+               </div>
+             )}
+             {results.length > 0 && <OCRResultsTable ocrResults={results.flatMap(r => r.ocrResults)} counts={results.reduce((acc, r) => {
+                Object.entries(r.metrics.countsByName).forEach(([name, count]) => {
+                  acc[name] = (acc[name] || 0) + count;
+                });
+                return acc;
+              }, {} as Record<string, number>)} />}
           </div>
         </>
+      )}
+
+      {maximizedImage && (
+        <div 
+          style={{
+            position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh",
+            backgroundColor: "rgba(0,0,0,0.85)", zIndex: 9999,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: "2rem", cursor: "zoom-out"
+          }}
+          onClick={() => setMaximizedImage(null)}
+        >
+          <div style={{ position: "relative", maxWidth: "95%", maxHeight: "95%" }}>
+            <img src={maximizedImage} alt="Maximized view" style={{ maxWidth: "100%", maxHeight: "90vh", objectFit: "contain", borderRadius: "8px", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)" }} />
+            <button 
+              style={{ position: "absolute", top: "-1rem", right: "-1rem", background: "var(--danger)", color: "white", border: "none", borderRadius: "50%", width: "32px", height: "32px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" }}
+              onClick={(e) => { e.stopPropagation(); setMaximizedImage(null); }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
       )}
 
     </div>

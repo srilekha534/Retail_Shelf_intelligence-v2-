@@ -110,7 +110,7 @@ OCR_ENABLED = True
 OCR_BACKEND = "paddleocr"         # "paddleocr" (GPU accelerated, DB + SVTR_LCNet)
 OCR_LANGUAGES = ["en"]
 OCR_CONFIDENCE = 0.15            # confidence threshold for OCR detections (lowered for higher recall)
-MAX_OCR_PRODUCTS = 300           # process up to 300 products to avoid skipping detections
+MAX_OCR_PRODUCTS = 900           # process up to 300 products to avoid skipping detections
 
 # PaddleOCR engine settings (optimized for RTX 2050 4GB VRAM)
 PADDLE_USE_GPU = True             # auto-fallback to CPU if GPU unavailable

@@ -283,14 +283,28 @@ def _run_detection(img_array: np.ndarray, filename: str = "image.jpg", conf: flo
             x1, y1, x2, y2 = int(d.x1), int(d.y1), int(d.x2), int(d.y2)
             cv2.rectangle(img_anomaly, (x1, y1), (x2, y2), (255, 0, 0), 3)
             label = f"Damaged {dl_scores[i]:.2f}"
-            cv2.putText(img_anomaly, label, (x1, max(y1 - 5, 0)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
+            (w, h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
+            cv2.rectangle(img_anomaly, (x1, y1 - h - 10), (x1 + w + 10, y1), (255, 0, 0), -1)
+            cv2.putText(img_anomaly, label, (x1 + 5, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
-    # Draw rule-based anomalies (OOS gaps, missing tags, misplaced)
+    # Draw rule-based anomalies (OOS gaps, missing tags, misplaced, fallen, low stock)
+    global_y_offset = 30
     for a in anomalies:
         if hasattr(a, 'detection') and a.detection:
+            # Localized anomaly (has bounding box)
             ax1, ay1, ax2, ay2 = int(a.detection.x1), int(a.detection.y1), int(a.detection.x2), int(a.detection.y2)
             cv2.rectangle(img_anomaly, (ax1, ay1), (ax2, ay2), (255, 0, 0), 3)
-            cv2.putText(img_anomaly, str(a.anomaly_type.value), (ax1, max(ay1 - 5, 0)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
+            label = str(a.anomaly_type.value).replace('_', ' ').upper()
+            (w, h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
+            cv2.rectangle(img_anomaly, (ax1, ay1 - h - 10), (ax1 + w + 10, ay1), (255, 0, 0), -1)
+            cv2.putText(img_anomaly, label, (ax1 + 5, ay1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+        else:
+            # Global anomaly (no bounding box, e.g. LOW_STOCK)
+            label = f"ALERT: {str(a.anomaly_type.value).replace('_', ' ').upper()} - {a.description}"
+            (w, h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
+            cv2.rectangle(img_anomaly, (10, global_y_offset - h - 10), (10 + w + 20, global_y_offset + 10), (0, 0, 255), -1)
+            cv2.putText(img_anomaly, label, (20, global_y_offset), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+            global_y_offset += h + 30
 
     # Convert drawn images to base64
     img_processed_bgr = cv2.cvtColor(img_processed, cv2.COLOR_RGB2BGR)
@@ -364,6 +378,26 @@ def get_history(limit: int = 50, offset: int = 0):
     except Exception as e:
         print(f"Error fetching history: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch history")
+
+@app.delete("/history")
+def clear_all_history():
+    """Clear all historical detection runs."""
+    try:
+        db.clear_all_history()
+        return {"status": "ok", "message": "All history cleared"}
+    except Exception as e:
+        print(f"Error clearing history: {e}")
+        raise HTTPException(status_code=500, detail="Failed to clear history")
+
+@app.delete("/history/{record_id}")
+def delete_history_record(record_id: int):
+    """Delete a specific historical detection run."""
+    try:
+        db.delete_history_record(record_id)
+        return {"status": "ok", "message": f"Record {record_id} deleted"}
+    except Exception as e:
+        print(f"Error deleting history record: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete history record")
 
 @app.get("/health")
 def health():

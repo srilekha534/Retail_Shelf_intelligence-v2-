@@ -32,7 +32,7 @@ class AnomalyType(str, Enum):
     EMPTY_SHELF         = "empty_shelf"
     LOW_STOCK           = "low_stock"
     MISPLACED           = "misplaced"
-    PRICE_TAG_MISSING   = "price_tag_missing"
+    FALLEN_PRODUCT      = "fallen_product"
     PLANOGRAM_VIOLATION = "planogram_violation"
 
 
@@ -77,17 +77,17 @@ class AnomalyDetector:
         Returns a list of Anomaly objects (may be empty if shelf is fine).
         """
         anomalies = []
-        anomalies.extend(self._check_empty_shelves(stats))
+        anomalies.extend(self._check_empty_shelves_and_fallen(stats))
         anomalies.extend(self._check_low_stock(stats))
         anomalies.extend(self._check_misplaced(stats))
-        anomalies.extend(self._check_missing_price_tags(stats))
         return anomalies
 
-    # ── Check 1: Empty shelf ──────────────────────────────────────────────────
+    # ── Check 1: Empty shelf & Fallen Products ──────────────────────────────
 
-    def _check_empty_shelves(self, stats: ShelfStats) -> List[Anomaly]:
+    def _check_empty_shelves_and_fallen(self, stats: ShelfStats) -> List[Anomaly]:
         """
-        Detect large horizontal gaps (Out of Stock) between products in the same zone.
+        Detect large horizontal gaps (Out of Stock) between products.
+        Also detects fallen products by comparing aspect ratios within the shelf.
         """
         anomalies = []
         for zone in stats.zones:
@@ -101,20 +101,62 @@ class AnomalyDetector:
                 ))
                 continue
                 
-            # Sort detections by x1 to find horizontal gaps
-            dets = sorted(zone.detections, key=lambda d: d.x1)
-            for i in range(len(dets) - 1):
-                gap = dets[i+1].x1 - dets[i].x2
-                # If gap is larger than roughly 1.5x average product width, flag it
-                avg_width = sum((d.x2 - d.x1) for d in dets) / len(dets)
-                if gap > max(avg_width * 1.5, 50): # At least 50px gap
-                    anomalies.append(Anomaly(
-                        anomaly_type = AnomalyType.EMPTY_SHELF,
-                        severity     = "high",
-                        description  = "Out of stock gap detected between products.",
-                        zone_id = zone.zone_id,
-                        detection = Detection(box=[dets[i].x2, zone.zone_box[1], dets[i+1].x1, zone.zone_box[3]], class_id=-1, confidence=1.0, class_name="gap")
-                    ))
+            # Cluster detections into horizontal shelves based on their Y-centers
+            # We assume products on the same shelf have Y-centers within roughly half a product height of each other.
+            avg_height = sum((d.y2 - d.y1) for d in zone.detections) / len(zone.detections)
+            y_tolerance = avg_height * 0.6
+            
+            # Sort by Y-center
+            dets_by_y = sorted(zone.detections, key=lambda d: d.center[1])
+            
+            shelves = []
+            current_shelf = [dets_by_y[0]]
+            
+            for d in dets_by_y[1:]:
+                if abs(d.center[1] - current_shelf[-1].center[1]) < y_tolerance:
+                    current_shelf.append(d)
+                else:
+                    shelves.append(current_shelf)
+                    current_shelf = [d]
+            shelves.append(current_shelf)
+            
+            # For each shelf, check gaps and fallen products
+            for shelf in shelves:
+                if len(shelf) < 2:
+                    continue
+                    
+                dets_by_x = sorted(shelf, key=lambda d: d.x1)
+                
+                # Check for Fallen Products based on aspect ratio
+                aspect_ratios = [((d.x2 - d.x1) / max(1, d.y2 - d.y1)) for d in dets_by_x]
+                median_ar = sorted(aspect_ratios)[len(aspect_ratios)//2]
+                
+                for idx, d in enumerate(dets_by_x):
+                    ar = aspect_ratios[idx]
+                    # If this product is significantly wider relative to its height than the median on this shelf
+                    if ar > median_ar * 2.5 and ar > 1.2:
+                        anomalies.append(Anomaly(
+                            anomaly_type = AnomalyType.FALLEN_PRODUCT,
+                            severity     = "medium",
+                            description  = "Product appears to have fallen over.",
+                            zone_id = zone.zone_id,
+                            detection = d
+                        ))
+                
+                # Check for Gaps
+                avg_width = sum((d.x2 - d.x1) for d in dets_by_x) / len(dets_by_x)
+                
+                for i in range(len(dets_by_x) - 1):
+                    gap = dets_by_x[i+1].x1 - dets_by_x[i].x2
+                    # If gap is larger than 1.5x average product width, it's an out-of-stock gap
+                    if gap > max(avg_width * 1.5, 50): # At least 50px gap
+                        anomalies.append(Anomaly(
+                            anomaly_type = AnomalyType.EMPTY_SHELF,
+                            severity     = "high",
+                            description  = "Out of stock gap detected on shelf.",
+                            zone_id = zone.zone_id,
+                            detection = Detection(box=[dets_by_x[i].x2, dets_by_x[i].y1, dets_by_x[i+1].x1, dets_by_x[i].y2], class_id=-1, confidence=1.0, class_name="gap")
+                        ))
         return anomalies
 
     # ── Check 2: Low stock ────────────────────────────────────────────────────
@@ -142,11 +184,6 @@ class AnomalyDetector:
     def _check_misplaced(self, stats: ShelfStats) -> List[Anomaly]:
         """
         Detect products that are far from the centroid of their class cluster.
-
-        Logic:
-          - For each class, compute the average center (x, y) of all detections.
-          - Flag detections whose distance from the class centroid exceeds
-            a fraction of the image width.
         """
         anomalies = []
 
@@ -167,7 +204,6 @@ class AnomalyDetector:
 
         for class_name, detections in by_class.items():
             if len(detections) < 3:
-                # Not enough samples to compute a meaningful centroid
                 continue
 
             # Compute centroid
@@ -184,7 +220,6 @@ class AnomalyDetector:
                 if distance > threshold_px:
                     candidates.append((distance, d))
 
-            # Sort by distance (worst first) and keep only top N
             candidates.sort(key=lambda x: x[0], reverse=True)
             for distance, d in candidates[:max_misplaced]:
                 anomalies.append(Anomaly(
@@ -198,23 +233,6 @@ class AnomalyDetector:
                     detection = d,
                 ))
 
-        return anomalies
-
-    def _check_missing_price_tags(self, stats: ShelfStats) -> List[Anomaly]:
-        anomalies = []
-        for zone in stats.zones:
-            for d in zone.detections:
-                # Deterministic pseudo-random check to simulate price tag detection
-                # in absence of an actual price tag model (for UI pipeline)
-                # 5% chance a product is missing a price tag
-                if hash(f"{d.x1}{d.y1}{d.class_name}") % 100 < 5:
-                    anomalies.append(Anomaly(
-                        anomaly_type = AnomalyType.PRICE_TAG_MISSING,
-                        severity     = "medium",
-                        description  = "Missing price tag on shelf edge for this product.",
-                        zone_id      = zone.zone_id,
-                        detection    = d,
-                    ))
         return anomalies
     def format_report(self, anomalies: List[Anomaly]) -> str:
         """Return a human-readable anomaly report string."""

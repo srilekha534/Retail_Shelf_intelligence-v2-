@@ -40,6 +40,35 @@ export default function HistoryPage() {
     }
   };
 
+  const clearAllHistory = async () => {
+    if (!confirm("Are you sure you want to permanently delete all history?")) return;
+    try {
+      const response = await fetch("/api/history", { method: "DELETE" });
+      if (response.ok) {
+        setHistory([]);
+        setExpandedId(null);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to clear history");
+    }
+  };
+
+  const deleteRecord = async (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
+    if (!confirm("Delete this analysis record?")) return;
+    try {
+      const response = await fetch(`/api/history/${id}`, { method: "DELETE" });
+      if (response.ok) {
+        setHistory(prev => prev.filter(r => r.id !== id));
+        if (expandedId === id) setExpandedId(null);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete record");
+    }
+  };
+
   const getIdentificationRate = (identified: number, total: number) => {
     if (total === 0) return 0;
     return ((identified / total) * 100).toFixed(1);
@@ -50,9 +79,21 @@ export default function HistoryPage() {
 
   return (
     <div>
-      <div className={styles.pageHeader}>
-        <h1 className={styles.pageTitle}>Analysis History</h1>
-        <p className={styles.pageSubtitle}>Review previous shelf analyses and their results.</p>
+      <div className={styles.pageHeader} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+        <div>
+          <h1 className={styles.pageTitle}>Analysis History</h1>
+          <p className={styles.pageSubtitle}>Review previous shelf analyses and their results.</p>
+        </div>
+        {history.length > 0 && (
+          <button 
+            className={styles.toggleBtn} 
+            onClick={clearAllHistory} 
+            style={{ borderColor: "var(--danger)", color: "var(--danger)" }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            Clear All History
+          </button>
+        )}
       </div>
 
       {history.length === 0 ? (
@@ -101,6 +142,15 @@ export default function HistoryPage() {
                         {planogramAnomalies} Misplaced
                       </span>
                     )}
+                    <button 
+                      onClick={(e) => deleteRecord(e, record.id)}
+                      style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", padding: "0.25rem", borderRadius: "50%", transition: "background 0.2s" }}
+                      title="Delete record"
+                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = "rgba(239, 68, 68, 0.1)"}
+                      onMouseOut={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
                     <svg style={{ transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                   </div>
                 </div>

@@ -11,9 +11,10 @@ interface OCRProduct {
 
 interface OCRResultsTableProps {
   ocrResults: OCRProduct[];
+  counts?: Record<string, number>;
 }
 
-export function OCRResultsTable({ ocrResults }: OCRResultsTableProps) {
+export function OCRResultsTable({ ocrResults, counts = {} }: OCRResultsTableProps) {
   const [filter, setFilter] = useState("all");
 
   const filteredResults = ocrResults.filter(r => {
@@ -51,6 +52,7 @@ export function OCRResultsTable({ ocrResults }: OCRResultsTableProps) {
             <tr style={{ borderBottom: "1px solid var(--border)", backgroundColor: "var(--bg-secondary)", textAlign: "left" }}>
               <th style={{ padding: "0.75rem 1rem", fontWeight: 600, color: "var(--text-secondary)" }}>Detected Product</th>
               <th style={{ padding: "0.75rem 1rem", fontWeight: 600, color: "var(--text-secondary)" }}>Extracted OCR Text</th>
+              <th style={{ padding: "0.75rem 1rem", fontWeight: 600, color: "var(--text-secondary)" }}>Quantity</th>
               <th style={{ padding: "0.75rem 1rem", fontWeight: 600, color: "var(--text-secondary)" }}>Confidence</th>
               <th style={{ padding: "0.75rem 1rem", fontWeight: 600, color: "var(--text-secondary)" }}>Bounding Box</th>
             </tr>
@@ -58,7 +60,7 @@ export function OCRResultsTable({ ocrResults }: OCRResultsTableProps) {
           <tbody>
             {filteredResults.length === 0 ? (
               <tr>
-                <td colSpan={4} style={{ padding: "2rem", textAlign: "center", color: "var(--text-muted)" }}>
+                <td colSpan={5} style={{ padding: "2rem", textAlign: "center", color: "var(--text-muted)" }}>
                   No OCR results available.
                 </td>
               </tr>
@@ -78,6 +80,9 @@ export function OCRResultsTable({ ocrResults }: OCRResultsTableProps) {
                     ) : (
                       <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>No text readable</span>
                     )}
+                  </td>
+                  <td style={{ padding: "0.75rem 1rem", fontWeight: 600, color: "var(--primary)" }}>
+                    {result.name && result.name !== "Unknown" ? (counts[result.name] || 1) : "-"}
                   </td>
                   <td style={{ padding: "0.75rem 1rem" }}>
                     {result.ocr_confidence > 0 ? (

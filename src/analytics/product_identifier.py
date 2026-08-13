@@ -227,7 +227,7 @@ class ProductIdentifier:
         # 2. Fuzzy similarity matching
         for brand in self.brand_catalog.keys():
             ratio = _similarity(brand.lower(), text_lower)
-            if ratio >= 0.65:
+            if ratio >= 0.55:
                 return brand
 
         return None
@@ -354,32 +354,18 @@ class ProductIdentifier:
         name = re.sub(r'[\d.,]+$', '', name)
         # Remove leading numbers/barcodes
         name = re.sub(r'^[\d.,]+', '', name)
-        # Remove common noise words regardless of case
-        noise_words = ['rollback', 'net', 'wt', 'vol', 'qty', 'exp', 'mfg', 'mrp']
-        pattern = re.compile(r'\b(' + '|'.join(noise_words) + r')\b', flags=re.IGNORECASE)
-        name = pattern.sub('', name)
-        # Remove standalone numbers
-        name = re.sub(r'\b\d+\b', '', name)
-        # Remove special characters but keep hyphens and spaces
-        name = re.sub(r'[^\w\s\-]', '', name)
-
+        
         name = name.strip()
 
-        # Reject if it matches any full-string noise pattern
-        for pat in self._NOISE_PATTERNS:
-            if pat.match(name):
-                return ""
+        # Reject if it's literally just punctuation/symbols
+        if re.match(r'^[\W_]+$', name):
+            return ""
 
         # Remove leading/trailing punctuation
         name = name.strip(".,;:!?|/\\()[]{}\"'`~@#^&*_=+ ")
 
-        # Skip short strings (must be at least 3 chars)
-        if len(name) < 3:
-            return ""
-
-        # Reject names that are mostly digits (more than 50% digits = probably a code)
-        digit_count = sum(1 for c in name if c.isdigit())
-        if len(name) > 0 and digit_count / len(name) > 0.5:
+        # Accept strings as short as 2 characters
+        if len(name) < 2:
             return ""
 
         # Capitalise properly: ALL-CAPS words > 3 chars → Title Case
@@ -412,7 +398,7 @@ class ProductIdentifier:
             if conf < self.min_ocr_confidence:
                 continue
             cleaned = self._clean_name(text)
-            if len(cleaned) >= 3:  # minimum 3 chars for a valid fragment
+            if len(cleaned) >= 2:  # minimum 2 chars for a valid fragment
                 candidates.append((cleaned, conf, len(cleaned)))
 
         if not candidates:

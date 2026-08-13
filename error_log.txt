@@ -1,4 +1,0 @@
-Traceback (most recent call last):
-  File "D:\retail_shelf_intelligence\api\main.py", line 395, in detect
-    raise HTTPException(status_code=400, detail="File must be an image (JPEG/PNG)")
-fastapi.exceptions.HTTPException: 400: File must be an image (JPEG/PNG)
