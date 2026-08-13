@@ -69,7 +69,12 @@ class PaddleOCREngine:
         if self._ocr is not None or self._failed:
             return
 
-        from paddleocr import PaddleOCR
+        try:
+            from paddleocr import PaddleOCR
+        except ImportError as e:
+            self._failed = True
+            print(f"[PaddleOCR] Failed to import paddleocr: {e}")
+            return
 
         # Determine if GPU is actually available
         use_gpu = self._use_gpu

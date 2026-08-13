@@ -17,9 +17,6 @@ venv/
 data/raw/
 data/processed/
 data/replay_buffer/
-*.db
-*.sqlite
-*.sqlite3
 
 # Models (Ignore heavy weights to prevent large git commits)
 *.onnx
