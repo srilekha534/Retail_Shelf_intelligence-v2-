@@ -47,7 +47,7 @@ export default function Home() {
 
   // Fetch API health and current device
   useEffect(() => {
-    fetch("http://localhost:8000/health")
+    fetch("/api/health")
       .then(res => res.json())
       .then(data => {
         if (data && data.device) {
@@ -148,7 +148,7 @@ export default function Home() {
       formData.append("detect_anomalies", "true");
 
       try {
-        const response = await fetch("http://localhost:8000/detect", {
+        const response = await fetch("/api/detect", {
           method: "POST",
           body: formData,
         });
@@ -187,9 +187,9 @@ export default function Home() {
 
           newResults.push({
             filename: file.name,
-            originalImage: data.original_image_path ? `http://localhost:8000${data.original_image_path}` : URL.createObjectURL(file),
-            processedImage: data.processed_image_path ? `http://localhost:8000${data.processed_image_path}` : (data.image_b64 ? `data:image/jpeg;base64,${data.image_b64}` : null),
-            anomalyImage: data.anomaly_image_path ? `http://localhost:8000${data.anomaly_image_path}` : (data.image_anomaly_b64 ? `data:image/jpeg;base64,${data.image_anomaly_b64}` : null),
+            originalImage: data.original_image_path ? data.original_image_path : URL.createObjectURL(file),
+            processedImage: data.processed_image_path ? data.processed_image_path : (data.image_b64 ? `data:image/jpeg;base64,${data.image_b64}` : null),
+            anomalyImage: data.anomaly_image_path ? data.anomaly_image_path : (data.image_anomaly_b64 ? `data:image/jpeg;base64,${data.image_anomaly_b64}` : null),
             metrics: {
               totalProducts: data.total_products,
               identifiedProducts: data.product_inventory?.total_identified || 0,

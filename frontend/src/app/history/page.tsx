@@ -28,7 +28,7 @@ export default function HistoryPage() {
 
   const fetchHistory = async () => {
     try {
-      const response = await fetch("http://localhost:8000/history");
+      const response = await fetch("/api/history");
       if (!response.ok) throw new Error("Failed to fetch history");
       const data = await response.json();
       setHistory(data.history);
@@ -75,7 +75,7 @@ export default function HistoryPage() {
                   <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
                     <div style={{ width: "80px", height: "60px", backgroundColor: "var(--bg-primary)", borderRadius: "var(--radius-sm)", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       {record.processed_image_path ? (
-                        <img src={`http://localhost:8000${record.processed_image_path.replace('data/history_images/', '/history-images/')}`} alt="Thumbnail" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "cover" }} />
+                        <img src={record.processed_image_path.replace('data/history_images/', '/history-images/')} alt="Thumbnail" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "cover" }} />
                       ) : (
                         <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>No Image</span>
                       )}
@@ -110,7 +110,7 @@ export default function HistoryPage() {
                     <div>
                       <h5 style={{ fontSize: "0.875rem", fontWeight: 600, marginBottom: "0.75rem" }}>Image Result</h5>
                       {record.processed_image_path ? (
-                         <img src={`http://localhost:8000${record.processed_image_path.replace('data/history_images/', '/history-images/')}`} alt="Processed Result" style={{ width: "100%", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)" }} />
+                         <img src={record.processed_image_path.replace('data/history_images/', '/history-images/')} alt="Processed Result" style={{ width: "100%", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)" }} />
                       ) : (
                          <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>Image not saved for this run.</p>
                       )}
