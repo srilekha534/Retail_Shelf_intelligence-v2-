@@ -14,8 +14,11 @@ PyYAML>=6.0
 requests>=2.31.0
 python-multipart>=0.0.9
 
-# Analytics & OCR (PaddleOCR — GPU accelerated)
-paddlepaddle-gpu
+# Analytics & OCR (EasyOCR for PyTorch native + optional PaddleOCR)
+easyocr>=1.7.0
+# Note: paddlepaddle-gpu requires Python 3.10-3.11 and official Paddle wheels.
+# If using Python 3.10/3.11, install via: pip install paddlepaddle-gpu -f https://www.paddlepaddle.org.cn/whl/stable.html
+# paddlepaddle-gpu
 paddleocr>=2.7.0
 rapidfuzz>=3.0.0
 scikit-learn>=1.3.0

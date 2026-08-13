@@ -264,11 +264,13 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-*(Optional GPU Acceleration setup for PaddleOCR & PyTorch)*:
+*(Optional GPU Acceleration setup for PaddleOCR & PyTorch on Python 3.10 / 3.11)*:
 ```bash
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
-pip install paddlepaddle-gpu -i https://pypi.tqdm.site/simple
+# For PaddleOCR GPU support (Python 3.10/3.11 recommended):
+pip install paddlepaddle-gpu -f https://www.paddlepaddle.org.cn/whl/stable.html
 ```
+*Note: If `paddlepaddle-gpu` is omitted or if you are using newer Python versions (such as Python 3.12+), the system automatically falls back to PyTorch-native `EasyOCR`.*
 
 ### 2. Frontend Setup
 Navigate to the `frontend/` directory and install dependencies:
