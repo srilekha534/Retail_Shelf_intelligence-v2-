@@ -22,7 +22,6 @@ data/replay_buffer/
 *.sqlite3
 
 # Models (Ignore heavy weights to prevent large git commits)
-*.pt
 *.onnx
 *.engine
 .huggingface/
