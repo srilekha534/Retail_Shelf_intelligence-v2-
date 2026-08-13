@@ -97,7 +97,7 @@ class AnomalyDetector:
                     severity     = "high",
                     description  = f"Zone {zone.zone_id} is completely empty.",
                     zone_id = zone.zone_id,
-                    detection = Detection(x1=zone.zone_box[0], y1=zone.zone_box[1], x2=zone.zone_box[2], y2=zone.zone_box[3], confidence=1.0, class_name="gap")
+                    detection = Detection(box=[zone.zone_box[0], zone.zone_box[1], zone.zone_box[2], zone.zone_box[3]], class_id=-1, confidence=1.0, class_name="gap")
                 ))
                 continue
                 
@@ -113,7 +113,7 @@ class AnomalyDetector:
                         severity     = "high",
                         description  = "Out of stock gap detected between products.",
                         zone_id = zone.zone_id,
-                        detection = Detection(x1=dets[i].x2, y1=zone.zone_box[1], x2=dets[i+1].x1, y2=zone.zone_box[3], confidence=1.0, class_name="gap")
+                        detection = Detection(box=[dets[i].x2, zone.zone_box[1], dets[i+1].x1, zone.zone_box[3]], class_id=-1, confidence=1.0, class_name="gap")
                     ))
         return anomalies
 

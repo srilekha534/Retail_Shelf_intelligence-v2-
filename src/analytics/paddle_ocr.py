@@ -77,10 +77,13 @@ class PaddleOCREngine:
             try:
                 import paddle
                 if not paddle.device.is_compiled_with_cuda():
-                    raise RuntimeError("GPU was requested, but paddlepaddle-gpu is not installed. Everything must be processed by GPU if available. Please install paddlepaddle-gpu.")
+                    self._failed = True
+                    print("[PaddleOCR] GPU was requested, but paddlepaddle-gpu is not installed.")
+                    return
             except Exception as e:
                 self._failed = True
-                raise RuntimeError(f"GPU requested but failed to initialize Paddle GPU: {e}")
+                print(f"[PaddleOCR] GPU requested but failed to initialize Paddle GPU: {e}")
+                return
 
         print(f"[PaddleOCR] Loading engine (GPU={use_gpu}, lang={self._lang}, precision={self._precision})...")
         t0 = time.time()
@@ -94,8 +97,7 @@ class PaddleOCREngine:
             rec_image_shape=self._rec_image_shape,
         )
 
-        if use_gpu:
-            ocr_kwargs["gpu_mem"] = 1000  # Restrict VRAM for PaddleOCR to 1GB to prevent OOM
+
 
 
         # Enable TensorRT FP16 if GPU is available
@@ -110,7 +112,7 @@ class PaddleOCREngine:
         except Exception as e:
             self._failed = True
             print(f"[PaddleOCR] Failed to load engine: {e}")
-            raise
+            return
 
     def read_crop(
         self,

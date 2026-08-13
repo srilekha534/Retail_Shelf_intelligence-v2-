@@ -1,12 +1,12 @@
 OCR failed for crop 17: No module named 'paddleocr'
 Traceback (most recent call last):
-  File "D:\retail_shelf_intelligence\src\analytics\product_identifier.py", line 522, in identify
+  File "D:\retail_shelf_intelligence\src\analytics\product_identifier.py", line 509, in identify
     ocr_results, name, ocr_conf = self._run_ocr(crop)
                                   ^^^^^^^^^^^^^^^^^^^
-  File "D:\retail_shelf_intelligence\src\analytics\product_identifier.py", line 281, in _run_ocr
+  File "D:\retail_shelf_intelligence\src\analytics\product_identifier.py", line 268, in _run_ocr
     ocr_results = self.paddle_ocr.read_crop(preprocessed)
                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "D:\retail_shelf_intelligence\src\analytics\paddle_ocr.py", line 123, in read_crop
+  File "D:\retail_shelf_intelligence\src\analytics\paddle_ocr.py", line 125, in read_crop
     self._load()
   File "D:\retail_shelf_intelligence\src\analytics\paddle_ocr.py", line 72, in _load
     from paddleocr import PaddleOCR

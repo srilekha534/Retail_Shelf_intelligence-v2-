@@ -168,6 +168,7 @@ class ProductIdentifier:
         # Brand Catalog for spelling correction and fuzzy mapping
         # NOTE: Keywords should be at least 4 chars to avoid false matches
         self.brand_catalog = {
+            # Drinks & General
             "Coca-Cola": ["coca", "cola", "coke", "ccca", "c0la", "ccba"],
             "Fanta": ["fanta", "fata", "fant"],
             "Sprite": ["sprite", "sprt", "spri"],
@@ -175,6 +176,7 @@ class ProductIdentifier:
             "Dr Pepper": ["pepper", "dr pepper", "dr.pepper"],
             "Minute Maid": ["minute maid", "minute", "minut"],
             "Tim Hortons": ["horton", "hortons", "timhorton"],
+            # Pharmacy & Beauty
             "Profissimo": ["profissimo", "profis"],
             "Pure": ["pure"],
             "Calggy": ["calggy"],
@@ -195,6 +197,21 @@ class ProductIdentifier:
             "Dove": ["dove"],
             "Nivea": ["nivea"],
             "Gillette": ["gillette", "gill", "gillet"],
+            
+            # Deodorants (from shelf image)
+            "Old Spice": ["old spice", "spice", "old", "endurance", "eled", "red zone", "swagger"],
+            "Degree": ["degree", "degre", "degrce"],
+            "Speed Stick": ["speed stick", "speed", "speedstick"],
+            "Secret": ["secret", "secrt"],
+            "Axe": ["axe", "apollo", "phoenix"],
+            "Suave": ["suave"],
+            "Right Guard": ["right guard", "guard"],
+            "Mitchum": ["mitchum", "mitch", "michum"],
+            "Brut": ["brut", "brot"],
+            "Arrid": ["arrid"],
+            "Dry Idea": ["dry idea", "dry"],
+            "Ban": ["ban"],
+            "Sure": ["sure"],
         }
 
     def _match_catalog(self, text: str) -> Optional[str]:
@@ -239,33 +256,20 @@ class ProductIdentifier:
         """
         height, width = crop.shape[:2]
 
-        # 1. Resize — ensure short side is at least 512px for readable text
+        # 1. Resize — ensure short side is at least 256px for readable text
+        # (avoid upscaling too much to prevent interpolation blur)
         short_side = min(height, width)
-        if short_side < 512:
-            scale = 512.0 / max(short_side, 1)
-            new_w = max(int(width * scale), 1)
-            new_h = max(int(height * scale), 1)
+        if short_side > 0 and short_side < 256:
+            scale = 256.0 / short_side
+            new_w = int(width * scale)
+            new_h = int(height * scale)
             crop = cv2.resize(crop, (new_w, new_h), interpolation=cv2.INTER_CUBIC)
 
-        # 2. Denoise (FastNlMeans — preserves edges while removing noise)
-        denoised = cv2.fastNlMeansDenoisingColored(crop, None, 6.0, 6.0, 7, 21)
+        # 2. Mild sharpening
+        gaussian = cv2.GaussianBlur(crop, (0, 0), sigmaX=1.5)
+        sharpened = cv2.addWeighted(crop, 1.5, gaussian, -0.5, 0)
 
-        # 3. Contrast Enhance (CLAHE on L channel in LAB color space)
-        lab = cv2.cvtColor(denoised, cv2.COLOR_RGB2LAB)
-        l_channel, a_channel, b_channel = cv2.split(lab)
-        clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
-        l_enhanced = clahe.apply(l_channel)
-        lab_enhanced = cv2.merge([l_enhanced, a_channel, b_channel])
-        enhanced = cv2.cvtColor(lab_enhanced, cv2.COLOR_LAB2RGB)
-
-        # 4. Sharpen (Unsharp Mask)
-        gaussian = cv2.GaussianBlur(enhanced, (0, 0), sigmaX=3)
-        sharpened = cv2.addWeighted(enhanced, 1.5, gaussian, -0.5, 0)
-
-        # 5. Normalize to [0, 255] range
-        normalized = cv2.normalize(sharpened, None, 0, 255, cv2.NORM_MINMAX)
-
-        return normalized.astype(np.uint8)
+        return sharpened
 
     # ── OCR execution ────────────────────────────────────────────────────
 

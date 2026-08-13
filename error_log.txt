@@ -1,4 +1,14 @@
 Traceback (most recent call last):
-  File "D:\retail_shelf_intelligence\api\main.py", line 392, in detect
-    raise HTTPException(status_code=400, detail="File must be an image (JPEG/PNG)")
-fastapi.exceptions.HTTPException: 400: File must be an image (JPEG/PNG)
+  File "D:\retail_shelf_intelligence\api\main.py", line 401, in detect
+    return _run_detection(img_array, file.filename or "image.jpg", conf=confidence, ocr_enabled=ocr_enabled, detect_anomalies=detect_anomalies)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\retail_shelf_intelligence\api\main.py", line 193, in _run_detection
+    anomalies = anomaly_detector.detect(stats)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\retail_shelf_intelligence\src\anomaly\rules.py", line 80, in detect
+    anomalies.extend(self._check_empty_shelves(stats))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\retail_shelf_intelligence\src\anomaly\rules.py", line 116, in _check_empty_shelves
+    detection = Detection(box=[dets[i].x2, zone.zone_box[1], dets[i+1].x1, zone.zone_box[3]], class_id=-1, confidence=1.0, class_name="gap")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: Detection.__init__() got an unexpected keyword argument 'x1'
