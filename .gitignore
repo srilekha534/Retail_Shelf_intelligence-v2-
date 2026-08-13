@@ -1,0 +1,87 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.pyre/
+
+# Virtual environments
+venv/
+.env
+.env.*
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data & Databases
+data/raw/
+data/processed/
+data/replay_buffer/
+*.db
+*.sqlite
+*.sqlite3
+
+# Models (Ignore heavy weights to prevent large git commits)
+*.pt
+*.onnx
+*.engine
+.huggingface/
+.hf_cache/
+
+# Logs and outputs
+*.log
+runs/
+output.jpg
+wandb/
+
+# OS files
+.DS_Store
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.pyre/
+
+# Virtual environments
+venv/
+.env
+.env.*
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data & Databases
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Models (Ignore heavy weights to prevent large git commits)
+*.onnx
+*.engine
+*.pth
+.huggingface/
+.hf_cache/
+
+# Logs and outputs
+*.log
+runs/
+output.jpg
+wandb/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Next.js / Node
+node_modules/
+.next/
+out/
+build/
+.env*.local
+data/history_images/
